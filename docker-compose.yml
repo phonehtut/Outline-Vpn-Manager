@@ -65,7 +65,6 @@ services:
         condition: service_started
     networks:
       - internal
-      - traefik
     labels:
       - traefik.enable=true
       - traefik.http.routers.outline-manager.rule=Host(`${APP_DOMAIN:-outline-manager.example.com}`)
@@ -150,6 +149,3 @@ volumes:
 networks:
   internal:
     driver: bridge
-  traefik:
-    external: true
-    name: ${TRAEFIK_NETWORK:-traefik}
