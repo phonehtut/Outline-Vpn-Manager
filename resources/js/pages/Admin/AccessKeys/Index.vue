@@ -118,6 +118,23 @@ function formatLimit(bytes: number | null): string {
     if (bytes >= 1024 ** 3) return `${Math.round((bytes / 1024 ** 3) * 10) / 10} GB`;
     return `${Math.round(bytes / 1024 ** 2)} MB`;
 }
+
+function formatBytes(bytes: number | null): string {
+    if (bytes === null) return '—';
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let value = bytes;
+    let unitIndex = -1;
+    do {
+        value /= 1024;
+        unitIndex++;
+    } while (value >= 1024 && unitIndex < units.length - 1);
+    return `${Math.round(value * 10) / 10} ${units[unitIndex]}`;
+}
+
+function formatDateTime(value: string | null): string {
+    return value ? new Date(value).toLocaleString() : '—';
+}
 </script>
 
 <template>
@@ -143,11 +160,16 @@ function formatLimit(bytes: number | null): string {
                                 <TableHead>Server</TableHead>
                                 <TableHead>Created By</TableHead>
                                 <TableHead>Limit</TableHead>
+                                <TableHead>Last active</TableHead>
+                                <TableHead>Usage (last 30 days)</TableHead>
+                                <TableHead title="Most devices connected simultaneously with this key during the last 30 days.">
+                                    Peak devices (last 30 days)
+                                </TableHead>
                                 <TableHead class="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableEmpty v-if="keys.data.length === 0" :colspan="5">No access keys found.</TableEmpty>
+                            <TableEmpty v-if="keys.data.length === 0" :colspan="8">No access keys found.</TableEmpty>
                             <TableRow v-for="key in keys.data" :key="key.id">
                                 <TableCell>
                                     <div class="flex min-w-32 flex-col gap-1">
@@ -165,6 +187,20 @@ function formatLimit(bytes: number | null): string {
                                 <TableCell class="whitespace-nowrap text-xs text-muted-foreground">
                                     <div>{{ formatLimit(key.data_limit_bytes) }}</div>
                                     <div v-if="key.expires_at" class="mt-1">Expires {{ key.expires_at.substring(0, 10) }}</div>
+                                </TableCell>
+                                <TableCell class="whitespace-nowrap text-xs">
+                                    {{ formatDateTime(key.last_active_at) }}
+                                </TableCell>
+                                <TableCell class="whitespace-nowrap text-xs">
+                                    {{ formatBytes(key.usage_bytes) }}
+                                </TableCell>
+                                <TableCell class="whitespace-nowrap text-xs">
+                                    <template v-if="key.detailed_metrics_supported === false">Not supported by server</template>
+                                    <template v-else-if="key.peak_device_count !== null">
+                                        <div>{{ key.peak_device_count }}</div>
+                                        <div class="text-muted-foreground">{{ formatDateTime(key.peak_device_at) }}</div>
+                                    </template>
+                                    <template v-else>—</template>
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <div class="flex items-center justify-end gap-1">

@@ -6,6 +6,7 @@ use App\Models\AccessKey;
 use App\Models\Server;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 class OutlineApiService
@@ -58,6 +59,74 @@ class OutlineApiService
         $response = $this->client($server)->get('/access-keys')->throw();
 
         return $response->json('accessKeys', []);
+    }
+
+    /**
+     * Fetch per-key metrics for the trailing 30 days.
+     *
+     * @return array{supported: bool, keys: array<string, array{usage_bytes: int, last_active_at: int|null, peak_device_count: int|null, peak_device_at: int|null}>}|null
+     */
+    public function getAccessKeyMetrics(Server $server): ?array
+    {
+        try {
+            $metrics = $this->client($server)
+                ->get('/experimental/server/metrics', ['since' => '30d'])
+                ->throw()
+                ->json('accessKeys', []);
+
+            $keys = [];
+
+            foreach ($metrics as $metric) {
+                $keyId = (string) ($metric['accessKeyId'] ?? '');
+
+                if ($keyId === '') {
+                    continue;
+                }
+
+                $keys[$keyId] = [
+                    'usage_bytes' => (int) ($metric['dataTransferred']['bytes'] ?? 0),
+                    'last_active_at' => isset($metric['connection']['lastTrafficSeen'])
+                        ? (int) $metric['connection']['lastTrafficSeen']
+                        : null,
+                    'peak_device_count' => isset($metric['connection']['peakDeviceCount']['data'])
+                        ? (int) $metric['connection']['peakDeviceCount']['data']
+                        : null,
+                    'peak_device_at' => isset($metric['connection']['peakDeviceCount']['timestamp'])
+                        ? (int) $metric['connection']['peakDeviceCount']['timestamp']
+                        : null,
+                ];
+            }
+
+            return ['supported' => true, 'keys' => $keys];
+        } catch (RequestException $exception) {
+            if ($exception->response->status() !== 404) {
+                return null;
+            }
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        try {
+            $usage = $this->client($server)
+                ->get('/metrics/transfer')
+                ->throw()
+                ->json('bytesTransferredByUserId', []);
+
+            $keys = [];
+
+            foreach ($usage as $keyId => $bytes) {
+                $keys[(string) $keyId] = [
+                    'usage_bytes' => (int) $bytes,
+                    'last_active_at' => null,
+                    'peak_device_count' => null,
+                    'peak_device_at' => null,
+                ];
+            }
+
+            return ['supported' => false, 'keys' => $keys];
+        } catch (ConnectionException|RequestException) {
+            return null;
+        }
     }
 
     /**

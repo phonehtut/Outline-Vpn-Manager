@@ -26,6 +26,11 @@ export type AccessKey = {
     name: string;
     access_url: string | null;
     data_limit_bytes: number | null;
+    usage_bytes: number | null;
+    last_active_at: string | null;
+    peak_device_count: number | null;
+    peak_device_at: string | null;
+    detailed_metrics_supported: boolean | null;
     expires_at: string | null;
     created_at: string;
     updated_at: string;

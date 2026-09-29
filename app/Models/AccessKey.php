@@ -16,11 +16,16 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string|null $access_url
  * @property int|null $data_limit_bytes
+ * @property int|null $usage_bytes
+ * @property Carbon|null $last_active_at
+ * @property int|null $peak_device_count
+ * @property Carbon|null $peak_device_at
+ * @property bool|null $detailed_metrics_supported
  * @property Carbon|null $expires_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['server_id', 'created_by', 'outline_key_id', 'name', 'access_url', 'data_limit_bytes', 'expires_at'])]
+#[Fillable(['server_id', 'created_by', 'outline_key_id', 'name', 'access_url', 'data_limit_bytes', 'expires_at', 'usage_bytes', 'last_active_at', 'peak_device_count', 'peak_device_at', 'detailed_metrics_supported'])]
 class AccessKey extends Model
 {
     use HasFactory;
@@ -35,6 +40,11 @@ class AccessKey extends Model
         return [
             'expires_at' => 'datetime',
             'data_limit_bytes' => 'integer',
+            'usage_bytes' => 'integer',
+            'last_active_at' => 'datetime',
+            'peak_device_count' => 'integer',
+            'peak_device_at' => 'datetime',
+            'detailed_metrics_supported' => 'boolean',
         ];
     }
 

@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\AccessKey;
 use App\Models\Server;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use RuntimeException;
 use Throwable;
 
@@ -21,6 +22,7 @@ class OutlineKeySyncService
     public function sync(Server $server): array
     {
         $remoteKeys = $this->outlineApi->listKeys($server);
+        $metrics = $this->outlineApi->getAccessKeyMetrics($server);
         $remoteIds = collect($remoteKeys)->pluck('id')->map(fn ($id) => (string) $id)->all();
 
         $removed = $server->accessKeys()
@@ -39,6 +41,21 @@ class OutlineKeySyncService
                 'access_url' => $remoteKey['accessUrl'] ?? null,
                 'data_limit_bytes' => $remoteKey['dataLimit']['bytes'] ?? null,
             ];
+
+            if ($metrics !== null) {
+                $keyMetrics = $metrics['keys'][$remoteId] ?? null;
+                $attributes += [
+                    'usage_bytes' => $keyMetrics['usage_bytes'] ?? 0,
+                    'last_active_at' => isset($keyMetrics['last_active_at'])
+                        ? Carbon::createFromTimestamp($keyMetrics['last_active_at'])
+                        : null,
+                    'peak_device_count' => $keyMetrics['peak_device_count'] ?? null,
+                    'peak_device_at' => isset($keyMetrics['peak_device_at'])
+                        ? Carbon::createFromTimestamp($keyMetrics['peak_device_at'])
+                        : null,
+                    'detailed_metrics_supported' => $metrics['supported'],
+                ];
+            }
 
             if ($existingKeys->has($remoteId)) {
                 $existingKeys->get($remoteId)->update($attributes);

@@ -185,6 +185,23 @@ function formatBytes(bytes: number | null): string {
     }
     return `${Math.round(bytes / (1024 * 1024))} MB`;
 }
+
+function formatUsage(bytes: number | null): string {
+    if (bytes === null) return '—';
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let value = bytes;
+    let unitIndex = -1;
+    do {
+        value /= 1024;
+        unitIndex++;
+    } while (value >= 1024 && unitIndex < units.length - 1);
+    return `${Math.round(value * 10) / 10} ${units[unitIndex]}`;
+}
+
+function formatDateTime(value: string | null): string {
+    return value ? new Date(value).toLocaleString() : '—';
+}
 </script>
 
 <template>
@@ -239,11 +256,16 @@ function formatBytes(bytes: number | null): string {
                                     <TableHead>Key Name & Access URL</TableHead>
                                     <TableHead>Data Limit</TableHead>
                                     <TableHead>Expiry Status</TableHead>
+                                    <TableHead>Last active</TableHead>
+                                    <TableHead>Usage (last 30 days)</TableHead>
+                                    <TableHead title="Most devices connected simultaneously with this key during the last 30 days.">
+                                        Peak devices (last 30 days)
+                                    </TableHead>
                                     <TableHead class="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableEmpty v-if="keys.length === 0" :colspan="4">
+                                <TableEmpty v-if="keys.length === 0" :colspan="7">
                                     No access keys found. Create a key or use "Sync from Server".
                                 </TableEmpty>
                                 <TableRow v-for="key in keys" :key="key.id">
@@ -279,6 +301,20 @@ function formatBytes(bytes: number | null): string {
                                     </TableCell>
                                     <TableCell>
                                         <KeyBadge :expires-at="key.expires_at" />
+                                    </TableCell>
+                                    <TableCell class="whitespace-nowrap text-xs">
+                                        {{ formatDateTime(key.last_active_at) }}
+                                    </TableCell>
+                                    <TableCell class="whitespace-nowrap text-xs">
+                                        {{ formatUsage(key.usage_bytes) }}
+                                    </TableCell>
+                                    <TableCell class="whitespace-nowrap text-xs">
+                                        <template v-if="key.detailed_metrics_supported === false">Not supported by server</template>
+                                        <template v-else-if="key.peak_device_count !== null">
+                                            <div>{{ key.peak_device_count }}</div>
+                                            <div class="text-muted-foreground">{{ formatDateTime(key.peak_device_at) }}</div>
+                                        </template>
+                                        <template v-else>—</template>
                                     </TableCell>
                                     <TableCell class="text-right">
                                         <div class="flex items-center justify-end gap-1">
