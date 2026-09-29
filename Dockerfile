@@ -5,7 +5,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     libzip-dev \
     unzip \
-    && docker-php-ext-install -j"$(nproc)" bcmath intl pdo_pgsql pcntl zip \
+    && for extension in bcmath intl opcache pdo_pgsql pcntl zip; do \
+        module="$extension"; \
+        if [ "$extension" = "opcache" ]; then module="Zend OPcache"; fi; \
+        if php -r 'exit(extension_loaded($argv[1]) ? 0 : 1);' "$module"; then \
+            echo "$module is already enabled; skipping install"; \
+        else \
+            docker-php-ext-install -j"$(nproc)" "$extension"; \
+        fi; \
+    done \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -41,7 +49,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libicu-dev \
     libpq-dev \
     libzip-dev \
-    && docker-php-ext-install -j"$(nproc)" bcmath intl opcache pdo_pgsql pcntl zip \
+    && for extension in bcmath intl opcache pdo_pgsql pcntl zip; do \
+        module="$extension"; \
+        if [ "$extension" = "opcache" ]; then module="Zend OPcache"; fi; \
+        if php -r 'exit(extension_loaded($argv[1]) ? 0 : 1);' "$module"; then \
+            echo "$module is already enabled; skipping install"; \
+        else \
+            docker-php-ext-install -j"$(nproc)" "$extension"; \
+        fi; \
+    done \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
