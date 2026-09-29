@@ -3,10 +3,9 @@ FROM php:8.5-cli-bookworm AS composer-dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libicu-dev \
     libpq-dev \
-    libsqlite3-dev \
     libzip-dev \
     unzip \
-    && docker-php-ext-install -j"$(nproc)" bcmath intl pdo_pgsql pdo_sqlite pcntl zip \
+    && docker-php-ext-install -j"$(nproc)" bcmath intl pdo_pgsql pcntl zip \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -41,9 +40,8 @@ FROM php:8.5-fpm-bookworm AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libicu-dev \
     libpq-dev \
-    libsqlite3-dev \
     libzip-dev \
-    && docker-php-ext-install -j"$(nproc)" bcmath intl opcache pdo_pgsql pdo_sqlite pcntl zip \
+    && docker-php-ext-install -j"$(nproc)" bcmath intl opcache pdo_pgsql pcntl zip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
